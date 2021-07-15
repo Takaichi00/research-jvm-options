@@ -65,6 +65,50 @@ GC ログを出力する。GC ログを出力することによるパフォー�
 
 G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だが、低スペックマシンでは SerialGC が勝手に選択されることもあるみたいなので、そのままのオプションを設定すればよい。 起動プションも java 8 と記述形式は変更なし。 参考: [低スペックマシンでJava 11を動かすと、デフォルトのGCはG1GCじゃなくてSerialGCになる](https://matsumana.info/blog/2018/12/09/java11-g1gc-default/)
 
+## G1GC のメモ
+
+* G1GC のチューニング: [10 ガベージファースト・ガベージ・コレクタのチューニング](https://docs.oracle.com/javase/jp/8/docs/technotes/guides/vm/gctuning/g1_gc_tuning.html)
+
+  * G1 GCには、満たそうとする一時停止時間目標(ソフト・リアルタイム目標)があります。若いコレクションでは、G1 GCはその若い世代(EdenのサイズとSurvivorのサイズ)を調整して、ソフト・リアルタイム目標を満たします。
+
+  * G1 GCは、リージョンのEdenセットに追加されたリージョンからの割当て要求のほとんどを満たします。
+
+  * 若いガベージ・コレクションでは、G1 GCは前回のガベージ・コレクションからEdenリージョンとSurvivorリージョンの両方を収集します。
+
+  * 重要なデフォルト
+
+    * G1 GCは適応型ガベージ・コレクタであり、デフォルト値を変更せずにそのまま使用して効果的に動作できます
+
+  * **推奨事項**
+
+    * **若い世代のサイズ:** `-Xmn`オプションやその他の関連オプション(`-XX:NewRatio`など)を使用して、若い世代のサイズを明示的に設定しないでください。若い世代のサイズを固定すると、指定した一時停止時間目標がオーバーライドされます。
+      * `-Xmn` ... New領域初期サイズ
+    * **一時停止時間目標**
+      * G1 GCのスループット目標は、アプリケーション時間が90%、ガベージ・コレクション時間が10%です。
+      * これをJava HotSpot VMのパラレル・コレクタと比較してみましょう。パラレル・コレクタのスループット目標は、アプリケーション時間が99%、ガベージ・コレクション時間が1%です。
+      * したがって、G1 GCのスループットを評価するときは、一時停止時間目標を緩くしてください。あまり積極的な目標を設定すると、ガベージ・コレクションのオーバーヘッドが増加しても構わないという意味に解釈され、スループットに直接影響します。
+
+  * **「to-space overflow」または「to-space exhausted」**メッセージがログに表示されている場合、G1 GCではSurvivorオブジェクトまたは昇格されたオブジェクト(あるいはその両方)用のメモリーが不足しています。Javaヒープはすでに最大値に達しているので拡張できません。
+
+    * ```
+      924.897: [GC pause (G1 Evacuation Pause) (mixed) (to-space exhausted), 0.1957310 secs]
+      924.897: [GC pause (G1 Evacuation Pause) (mixed) (to-space overflow), 0.1957310 secs]
+      ```
+
+* [7.16　G1GCのチューニング](http://itdoc.hitachi.co.jp/manuals/link/cosmi_v0970/03Y0460D/EY040198.HTM) (日立のドキュメンテーション?)
+
+  * 3～5のオプションを指定した場合，New領域のリサイズが制限され，目標停止時間内にGC停止時間を抑えようとするG1GCのメリットを損なうため，G1GCでは指定しないことを推奨します。また，3～5のオプションを指定しなかった場合，New領域の初期サイズはJavaヒープの初期サイズ×0.2のサイズが確保され，Eden領域の初期サイズはSurvivorRatioのデフォルト値である8に従って割り当てられます。
+
+* [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
+
+* [ガベージコレクタの仕組みを理解する](https://www.atmarkit.co.jp/ait/articles/0404/02/news079_2.html)
+  * -Xms、-Xmx（-Xms≦-Xmx）に異なる値を設定すると、ヒープサイズは起動時には-Xmsで指定された大きさですが、状況によってJVMがヒープが足りないと判断した場合は最大-Xmxで指定した大きさまで拡大します。これらの値を同じにするとヒープサイズ調整のオーバーヘッドがなくなりパフォーマンスが上がる場合もあります。
+* [Unified JVM Logging](https://www.slideshare.net/YujiKubota/unified-jvm-logging)
+  * Java 9 から変更された GC ログの形式について
+  * GC ログの設定方法見方についても言及
+
+
+
 
 
 # その他
@@ -77,7 +121,11 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 
 それぞれのオプションの意味dumponexit=true → JVM プロセスがシャットダウンした時にファイルにダンプするfilename → 出力するファイル名。ファイル名が指定されていない場合はプロセスの起動したディレクトリに自動的に生成された名前で出力されます。自動的に生成される名前は「プロセスID」「レコーディングID」「タイムスタンプ」を含んでいます。 例: hotspot-pid-47496-id-1-2018_01_25_19_10_41.jfrduration=time → JFRの記録時間を指定する。参考: https://koduki.github.io/docs/book-introduction-of-jfr/site/03/01-recording-jfr.html
 
+## コンテナサポート
 
++ [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
+  + JDK 10 からコンテナサポートが強化される
+  + `-XX:-UseContainerSupport`がデフォルトで有効となり、[JDK](http://d.hatena.ne.jp/keyword/JDK) 10からはDockerの設定[*6](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428#f-3770e488)から値を取得するようになるようです。
 
 # ヒープや Metaspace を調べる
 
@@ -91,6 +139,8 @@ $ sudo -u uic jstat -gc <java pid>
 $ sudo -u uic jstat -gccapacity <java pid>
 ```
 
+
+
 | 平時 (性能試験実施していない状態)            |
 | :------------------------------------------- |
 | 使用している Metaspace: MU                   |
@@ -103,3 +153,10 @@ $ sudo -u uic jstat -gccapacity <java pid>
 | CCSMN: 圧縮されたクラス領域の最小容量(KB)。  |
 | CCSMX: 圧縮されたクラス領域の最大容量(KB)。  |
 | CCSC: 圧縮されたクラス領域の容量(KB)。       |
+
+
+
+# 参考文献
+
+* [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
+  * 	JVM の全体的なチューニング方法について記載されている。困ったら参考になりそう。
