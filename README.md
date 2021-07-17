@@ -184,17 +184,38 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 
 
 
-# その他
+# App CDS
 
 ## -XX:SharedArchiveFile=<.jsa file> -XX:+UseAppCDS
 
 起動速度が早くなる事前に SharedArchiveFile を作成しておき、起動時に作成した SharedArchive を指定するということが必要参考: https://nowokay.hatenablog.com/entry/2019/10/19/002351 / https://yuya-hirooka.hatenablog.com/entry/2020/06/05/202606
 
+
+
+# JFR
+
 ## -XX:StartFlightRecording=\ dumponexit=true,\ filename=[file path],\ duration=[time]
 
 それぞれのオプションの意味dumponexit=true → JVM プロセスがシャットダウンした時にファイルにダンプするfilename → 出力するファイル名。ファイル名が指定されていない場合はプロセスの起動したディレクトリに自動的に生成された名前で出力されます。自動的に生成される名前は「プロセスID」「レコーディングID」「タイムスタンプ」を含んでいます。 例: hotspot-pid-47496-id-1-2018_01_25_19_10_41.jfrduration=time → JFRの記録時間を指定する。参考: https://koduki.github.io/docs/book-introduction-of-jfr/site/03/01-recording-jfr.html
 
-## コンテナサポート
+* [AppCDSを使ってみる](https://yuya-hirooka.hatenablog.com/entry/2020/06/05/202606)
+
+  * AppCDS(Application Class Data Sharing)は[CDS](http://d.hatena.ne.jp/keyword/CDS)(Class Data Sharing)の拡張であり、[Java](http://d.hatena.ne.jp/keyword/Java) 10以降で利用可能です。
+  * この機能を使うことで、アプリケーションでロードされるクラスを共有[アーカイブ](http://d.hatena.ne.jp/keyword/%A5%A2%A1%BC%A5%AB%A5%A4%A5%D6)から読み込むようになり、その起動時間を削減することができます。
+  * また、複数の[JVM](http://d.hatena.ne.jp/keyword/JVM)プロセス間でこの共有[アーカイブ](http://d.hatena.ne.jp/keyword/%A5%A2%A1%BC%A5%AB%A5%A4%A5%D6)からロードされるデータをシェアすることでメモリフットプリントを削減することが可能となるようです。
+  * **[JVM](http://d.hatena.ne.jp/keyword/JVM)を起動する際には、[バイトコード](http://d.hatena.ne.jp/keyword/%A5%D0%A5%A4%A5%C8%A5%B3%A1%BC%A5%C9)のロード、検証、リンク、クラスとインターフェースの初期化などが実行されます**。ここで、コアなクラスやインターフェースに関しては[JVM](http://d.hatena.ne.jp/keyword/JVM)の更新が起きない限り、毎回同じプロセスが実行されることになります。
+  * [CDS](http://d.hatena.ne.jp/keyword/CDS)ではそのプロセスの実行結果をファイルに共有[アーカイブ](http://d.hatena.ne.jp/keyword/%A5%A2%A1%BC%A5%AB%A5%A4%A5%D6)としてダンプし、[JVM](http://d.hatena.ne.jp/keyword/JVM)起動時にその共有[アーカイブ](http://d.hatena.ne.jp/keyword/%A5%A2%A1%BC%A5%AB%A5%A4%A5%D6)がメモリに[マッピング](http://d.hatena.ne.jp/keyword/%A5%DE%A5%C3%A5%D4%A5%F3%A5%B0)されることにより起動時間の短縮が可能となります。
+  * また、共有[アーカイブ](http://d.hatena.ne.jp/keyword/%A5%A2%A1%BC%A5%AB%A5%A4%A5%D6)の名の通り、この[アーカイブ](http://d.hatena.ne.jp/keyword/%A5%A2%A1%BC%A5%AB%A5%A4%A5%D6)されたデータは複数の[JVM](http://d.hatena.ne.jp/keyword/JVM)のプロセスで共有されるようになるため、メモリフットプリントの削減にもつながります。**[Java](http://d.hatena.ne.jp/keyword/Java) 12以降ではこの[CDS](http://d.hatena.ne.jp/keyword/CDS)の機能はデフォルトで有効化されています**
+* [Dynamic CDSよりJava10からある自力ダンプの方が起動が速い](https://nowokay.hatenablog.com/entry/2019/10/19/002351)
+  * [Java 13のDynamic CDSで想像以上に起動速度が速くなった - きしだのHatena](https://nowokay.hatenablog.com/entry/2019/10/17/224720)
+  * 昨日のエントリでDynamic [CDS](http://d.hatena.ne.jp/keyword/CDS)を使いましたが、自分でダンプしたクラスデータを使うほうが速くなりました。
+  * [Java](http://d.hatena.ne.jp/keyword/Java) 11ではそれぞれに`-XX:+UseAppCDS`をつけておく必要があります。
+
+
+
+
+
+# コンテナサポート
 
 + [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
   + JDK 10 からコンテナサポートが強化される
