@@ -250,6 +250,22 @@ $ sudo -u uic jstat -gccapacity <java pid>
 
 
 
+# TODO
+
+-Xss スレッドスタックの最大サイズ 1024M デフォルト
+-XX:InitialCodeCacheSize → 24m
+-XX:ReservedCodeCacheSize → 240m
+→ 初期値 = 最大値としたほうがいい?。CodeCache が枯渇すると、アプリケーションがスローダウンする恐れがある。 これを避けるため JMX から利用状況をモニタリングするとよい。
+
+-XX: MaxTenuringThreshold
+→ New → Old へ移動する閾値
+
+java.lang.OutOfMemoryError: Direct buffer memory
+MaxDirectBufferSize
+-XX:+ExitOnOutOfMemoryError でプロセスが停止していない場合、java のプロセスは PID 1 で起動して要るかどうか確かめてみる
+
+
+
 # 参考文献
 
 * [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
