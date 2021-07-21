@@ -220,6 +220,19 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 + [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
   + JDK 10 からコンテナサポートが強化される
   + `-XX:-UseContainerSupport`がデフォルトで有効となり、[JDK](http://d.hatena.ne.jp/keyword/JDK) 10からはDockerの設定[*6](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428#f-3770e488)から値を取得するようになるようです。
++ [Java 8でも安心。Dockerに対するCPU・メモリ対応。（2018年11月現在）](https://bufferings.hatenablog.com/entry/2018/11/11/114534)
+  + Java 8 でも `8u191` 以降を使えば安心。
+  + 逆にそれ以前だと、DockerでJavaを動かすときJavaが「そのコンテナに割り当てられたCPU・メモリ」じゃなくて「Dockerが動いてるHostのCPU・メモリ」を見てしまうことが課題だった。
+  + 参考
+    + [OpenShiftやKubernetes上でJavaを動かす際の注意 - nekop's blog](https://nekop.hatenablog.com/entry/2017/12/15/181238)
+    + [Matthew Gilliard's blog || Better Containerized JVMs in JDK10](https://mjg123.github.io/2018/01/10/Java-in-containers-jdk10.html)
+    + [Improved Docker Container Integration with Java 10 - Docker Blog](https://blog.docker.com/2018/04/improved-docker-container-integration-with-java-10/)
++ [KubernetesでJVMアプリを動かすための実践的ノウハウ集](https://speakerdeck.com/hhiroshell/jvm-on-kubernetes) 
+
+## その他考慮するべき点
+
+* VM で動かす場合はマルチコアに適した GC を選択する必要があるが、コンテナではシングルコアになる可能性もあるので、シングルコアに適した GC (Parallel GC) なども考慮する
+* cpu を小さくすｒと初期化に時間がかかり、スケールアップするときに ready になるまでに時間がかかる
 
 # ヒープや Metaspace を調べる
 
