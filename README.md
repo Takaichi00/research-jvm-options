@@ -229,10 +229,15 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
     + [Improved Docker Container Integration with Java 10 - Docker Blog](https://blog.docker.com/2018/04/improved-docker-container-integration-with-java-10/)
 + [KubernetesでJVMアプリを動かすための実践的ノウハウ集](https://speakerdeck.com/hhiroshell/jvm-on-kubernetes) 
 
-## その他考慮するべき点
+# その他考慮するべき点
 
 * VM で動かす場合はマルチコアに適した GC を選択する必要があるが、コンテナではシングルコアになる可能性もあるので、シングルコアに適した GC (Parallel GC) なども考慮する
-* cpu を小さくすｒと初期化に時間がかかり、スケールアップするときに ready になるまでに時間がかかる
+* cpu を小さくすると初期化に時間がかかり、スケールアップするときに ready になるまでに時間がかかる
+* https://www.atmarkit.co.jp/ait/articles/1005/13/news095.html
+  * Copy GC は「New領域」（Eden＋Survivor)を、Full GCではJavaVM固有領域全体を対象に、使用済みメモリ領域を回収する。
+  * Copy GCの発生要因
+    1. **Eden領域へのJavaオブジェクトの配置で空き領域が不足**
+  * 1リクエストに5秒くらい時間を要する Http リクエストの処理がある場合などは、young 領域を増やすといったことも考える
 
 # ヒープや Metaspace を調べる
 
