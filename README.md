@@ -176,9 +176,12 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 
 * [ガベージコレクタの仕組みを理解する](https://www.atmarkit.co.jp/ait/articles/0404/02/news079_2.html)
   * -Xms、-Xmx（-Xms≦-Xmx）に異なる値を設定すると、ヒープサイズは起動時には-Xmsで指定された大きさですが、状況によってJVMがヒープが足りないと判断した場合は最大-Xmxで指定した大きさまで拡大します。これらの値を同じにするとヒープサイズ調整のオーバーヘッドがなくなりパフォーマンスが上がる場合もあります。
+  
 * [Unified JVM Logging](https://www.slideshare.net/YujiKubota/unified-jvm-logging)
   * Java 9 から変更された GC ログの形式について
   * GC ログの設定方法見方についても言及
+  
+* GIGC は ヒープサイズだけ設定すればいいという設計思想? (要出典)
 
 
 
@@ -232,12 +235,41 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 # その他考慮するべき点
 
 * VM で動かす場合はマルチコアに適した GC を選択する必要があるが、コンテナではシングルコアになる可能性もあるので、シングルコアに適した GC (Parallel GC) なども考慮する
+
 * cpu を小さくすると初期化に時間がかかり、スケールアップするときに ready になるまでに時間がかかる
+
 * https://www.atmarkit.co.jp/ait/articles/1005/13/news095.html
   * Copy GC は「New領域」（Eden＋Survivor)を、Full GCではJavaVM固有領域全体を対象に、使用済みメモリ領域を回収する。
   * Copy GCの発生要因
     1. **Eden領域へのJavaオブジェクトの配置で空き領域が不足**
   * 1リクエストに5秒くらい時間を要する Http リクエストの処理がある場合などは、young 領域を増やすといったことも考える
+  
+* 1コンテナに割り当てるメモリの半分くらいをヒープサイズにしておくのが一般的?
+
+  * ヒープ意外にも、ネイティブメモリを利用するメタスペース、jvm 自体のメモリも入ってくる	
+
+* [[JVMオプション | Java | 技術メモ | TOYATAKU WEB]](https://fomsan.sakura.ne.jp/memo/java/javaVMOptions.html)
+
+  * `UseAdaptiveSizePolicy` はSurvivior領域のサイズはGCの都度、自動調整されてしまうため、それを無効にする。Surviror領域を意図した比率で保ちたい場合に設定する。
+  * 基本使わないほうがいい? 性能劣化を引き起こすかも
+
+* GC を実行するスレッド `XX:ParallelGCThreads` を G1GC などでは実施する必要があるか?
+
+* CGroup 関連
+
+  * Docker は cgroupsによるリソース制限を利用している
+
+  * Java 10 以前は cgroup のメモリ制限をしないとコンテナのメモリを見なかったが、java10 からは `UseContainerSupport`がデフォルトで有効になっているため、cgroup のメモリを制限値を見るようになった
+
+  * java10 以前は `UseCGroupMemoryLimitForHeap`を利用する必要がある
+
+  * Java 8 にもバックポートされている? ([JVMのヒープサイズとコンテナ時代のチューニング](https://i-beam.org/2019/08/15/jvm-heap-sizing/)) ([メニコア環境におけるJavaコンテナのパフォーマンス低下](https://qiita.com/yoichiwo7/items/0a9550b11ac726f79485))
+
+    * |     Javaバージョン      |      メモリ領域の取得       | ヒープサイズの割合 |
+      | :---------------------: | :-------------------------: | :----------------: |
+      | Java 8u121 - Java 8u181 | UseCGroupMemoryLimitForHeap |   MaxRAMFraction   |
+      | Java 8u191 - Java 8u222 |     UseContainerSupport     |   MaxRAMFraction   |
+      |        Java 10 -        |     UseContainerSupport     |  MaxRAMPercentage  |
 
 # ヒープや Metaspace を調べる
 
