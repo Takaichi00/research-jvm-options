@@ -183,6 +183,9 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
   
 * GIGC は ヒープサイズだけ設定すればいいという設計思想? (要出典)
 
+## Parallel GC
+- https://docs.oracle.com/javase/jp/8/docs/technotes/guides/vm/gctuning/parallel.html
+  - 複数のスレッドを使用してガベージ・コレクションを高速化する
 
 
 
