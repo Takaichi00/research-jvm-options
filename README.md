@@ -55,6 +55,10 @@ JVM にはエルゴノミクスというプロセスがあり、マシンのス�
 
 OOM 発生時に HeapDump を出力する。指定しておいたほうが無難。
 
+## -XX:InitialRAMPercentage / -XX:MinRAMPercentage / -XX:MaxRAMPercentage
+
+* JVMがJavaヒープに使用するメモリー量 ([参考](https://docs.oracle.com/javase/jp/8/docs/technotes/tools/unix/java.html))
+
 ## ヒープのメモ
 
 * [第 4 章 Java 実行システムのチューニング](https://docs.oracle.com/cd/E19528-01/820-1613/6nd986vco/index.html)
@@ -134,9 +138,25 @@ GC ログを出力する。GC ログを出力することによるパフォー�
 
 オプションの参考: https://www.slideshare.net/YujiKubota/unified-jvm-logging
 
-## - XX:+UseG1GC
+## -XX:+UseG1GC
 
 G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だが、低スペックマシンでは SerialGC が勝手に選択されることもあるみたいなので、そのままのオプションを設定すればよい。 起動プションも java 8 と記述形式は変更なし。 参考: [低スペックマシンでJava 11を動かすと、デフォルトのGCはG1GCじゃなくてSerialGCになる](https://matsumana.info/blog/2018/12/09/java11-g1gc-default/)
+
+## -XX:MaxGCPauseMillis
+
+* 望ましい最大一時停止時間の目標値を設定します。デフォルト値は200ミリ秒です。指定された値はヒープ・サイズには適応されません。([参考](https://docs.oracle.com/javase/jp/8/docs/technotes/guides/vm/gctuning/g1_gc_tuning.html))
+* デフォルトでは、最大一時停止時間目標はありません。一時停止時間目標が指定されている場合、ガベージ・コレクションによる一時停止を指定された値以内に維持するよう、ヒープ・サイズとその他のガベージ・コレクション関連パラメータが調整されます。このような調整に伴い、ガベージ・コレクタによりアプリケーションの全体的なスループットが低下する場合があるので、望ましい一時停止時間目標を必ずしも満たせるとはかぎりません。 ([参考](https://docs.oracle.com/javase/jp/8/docs/technotes/guides/vm/gctuning/parallel.html): パラレル・コレクタ・エルゴノミクス)
+
+## -XX:GCTimeRatio
+
+* [ガベージコレクタエルゴノミクス (java7?)](https://docs.oracle.com/javase/jp/7/technotes/guides/vm/gc-ergonomics.html)
+  * パラレルGC について
+    * コレクタで消費されるアプリケーション実行時間の 1 / (1 + nnn) 以下が望ましいという、仮想マシンへのヒント。
+    * たとえば、`-XX:GCTimeRatio=19` は、GC の合計時間の 5% という目標と 95% のスループット目標を設定します。つまり、アプリケーションはコレクタの 19 倍の時間を取得するはずです。
+    * デフォルト値は 99 で、アプリケーションがコレクタの少なくとも 99 倍の時間を取得するはずという意味です。つまり、コレクタは合計時間の 1% 以下の時間実行されるはずです。これは、サーバーアプリケーションにとって良い選択肢として選択されました。値が高すぎると、ヒープサイズがその最大値にまで大きくなります。
+  * **スループットは満たせるけれども、一時停止が長すぎる場合は、一時停止時間目標を選択します。これは、スループット目標が満たされないことを意味する可能性が高いので、アプリケーションにとって受け入れ可能な妥協値である値を選択してください。**
+* [Javaパフォーマンス関連覚書](https://qiita.com/ch7821/items/da381f1de1a2f89bba8c)
+  * 優先度は、「最大停止時間目標」 > 「スループット目標」で、これらが満たされていれば必要に応じて最小限のヒープ領域となるようサイズを縮小する。
 
 ## G1GC のメモ
 
@@ -189,7 +209,6 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 
 
 
-
 # App CDS
 
 ## -XX:SharedArchiveFile=<.jsa file> -XX:+UseAppCDS
@@ -219,7 +238,14 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 
 
 
+# Thread (スレッド)
 
+## -XX:CICompilerCount=*threads*
+
+* [Java Platform, Standard Editionツール・リファレンス](https://docs.oracle.com/javase/jp/8/docs/technotes/tools/windows/java.html)
+  * コンパイルに使用するコンパイラ・スレッド数を設定します。デフォルトで、スレッド数はサーバーJVMの場合に2に設定され、クライアントJVMの場合に1に設定され、階層型コンパイルが使用される場合はコア数まで拡大されます。次の例は、スレッド数を2に設定する方法を示しています。`-XX:CICompilerCount=2`
+* [メニコア環境におけるJavaコンテナのパフォーマンス低下](https://qiita.com/yoichiwo7/items/0a9550b11ac726f79485)
+  * JITコンパイルも複数スレッドで動作しており、メニコア環境ではそれなりのスレッド数が生成されてしまいます。このためこちらもCPUリソース制限に合わせてチューニングが必要となります。
 
 # コンテナサポート
 
@@ -234,6 +260,26 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
     + [Matthew Gilliard's blog || Better Containerized JVMs in JDK10](https://mjg123.github.io/2018/01/10/Java-in-containers-jdk10.html)
     + [Improved Docker Container Integration with Java 10 - Docker Blog](https://blog.docker.com/2018/04/improved-docker-container-integration-with-java-10/)
 + [KubernetesでJVMアプリを動かすための実践的ノウハウ集](https://speakerdeck.com/hhiroshell/jvm-on-kubernetes) 
+
+# その他
+
+## -XX:+ExitOnOutOfMemoryError
+
+このオプションを有効にすると、メモリー不足エラーが最初に発生した時点でJRockit JVMが終了します。メモリー不足エラーを処理するよりも、JRockit JVMのインスタンスを再起動する方が望ましい場合に利用できます。
+
+ → 要するに OOM 発生時に JVM が終了するコマンド
+
+* [Spring Boot 1.4.x の Web アプリを 1.5.x へバージョンアップする ( その１５ )( -XX:+ExitOnOutOfMemoryError と -XX:+CrashOnOutOfMemoryError オプションのどちらを指定すべきか？ )](https://ksby.hatenablog.com/entry/2017/07/17/190545)
+
+  * OutOfMemory 発生時に Web アプリケーションのログファイルに発生箇所のファイル名、行番号のログが出力された方がよくて、かつ Web アプリケーションが終了せずエラーが発生し続けても構わないのであれば `-XX:+ExitOnOutOfMemoryError` も `-XX:+CrashOnOutOfMemoryError` も指定しません。
+
+  * Web アプリケーションが終了すれば自動的に再起動する仕組みがあり、Web アプリケーションのログファイルに発生箇所のファイル名、行番号のログが出力される必要がないのであれば `-XX:+CrashOnOutOfMemoryError` を指定して終了するようにして、エラーファイルが生成されるようにします。
+
+  * `-XX:+ExitOnOutOfMemoryError` あるいは `-XX:+CrashOnOutOfMemoryError` オプションを指定する／しないに関わらず、`-XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=...` オプションは指定して HeapDump は出力した方がよいです。
+
+  * `-XX:+ExitOnOutOfMemoryError` は存在意義がよく分かりませんでした。HeapDump だけで OutOfMemory の原因を調査するのは難しい気がします。今回出力された HeapDump を [Memory Analyzer](http://www.eclipse.org/mat/) で開いてみましたが、今回のような実装が原因であれば `Caused by: java.lang.OutOfMemoryError: Java heap space` のログが出てくれた方が分かりやすいかな、と思いました。
+
+
 
 # その他考慮するべき点
 
@@ -317,9 +363,22 @@ java.lang.OutOfMemoryError: Direct buffer memory
 MaxDirectBufferSize
 -XX:+ExitOnOutOfMemoryError でプロセスが停止していない場合、java のプロセスは PID 1 で起動して要るかどうか確かめてみる
 
+シングルスレッドの場合、G1GC ではなく Parallel GC を利用したほうがいいのか? 利用したほうがいいとしたらそれはなぜか? (参考: メニコア環境におけるJavaコンテナのパフォーマンス低下)
+
 
 
 # 参考文献
 
 * [JVMアプリケーションを運用する際のメジャーどころチューニングポイントメモ](https://yoskhdia.hatenablog.com/entry/2017/11/05/224428)
   * 	JVM の全体的なチューニング方法について記載されている。困ったら参考になりそう。
+* 	[Kubernetes で運用する JVM アプリケーションの OutOfMemoryError に備える](https://tech.uzabase.com/entry/2020/08/18/090000)
+* https://yoskhdia.hatenablog.com/entry/2017/11/05/224428
+* https://i-beam.org/2019/08/15/jvm-heap-sizing/
+* https://qiita.com/yoichiwo7/items/0a9550b11ac726f79485
+* https://nekop.hatenablog.com/entry/2017/12/15/181238
+* https://qiita.com/h-r-k-matsumoto/items/17349e1154afd610c2e5
+* https://bufferings.hatenablog.com/entry/2018/11/11/114534
+* https://matsumana.info/blog/2018/12/09/java11-g1gc-default/
+* https://developers.redhat.com/blog/2017/04/04/openjdk-and-containers/
+* https://blog.openshift.com/scaling-java-containers/
+* https://access.redhat.com/documentation/ja-jp/openshift_container_platform/3.11/html/developer_guide/dev-gu
