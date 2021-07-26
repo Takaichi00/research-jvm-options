@@ -279,7 +279,13 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 
   * `-XX:+ExitOnOutOfMemoryError` は存在意義がよく分かりませんでした。HeapDump だけで OutOfMemory の原因を調査するのは難しい気がします。今回出力された HeapDump を [Memory Analyzer](http://www.eclipse.org/mat/) で開いてみましたが、今回のような実装が原因であれば `Caused by: java.lang.OutOfMemoryError: Java heap space` のログが出てくれた方が分かりやすいかな、と思いました。
 
+## -Xss
 
+* https://www.ibm.com/docs/ja/sdk-java-technology/7?topic=jclo-xss-option
+  * Java スレッドの最大スタック・サイズを設定します。
+  * 64 ビット JVM の場合は 1024 KB
+  * 最大値を超える場合は、java/lang/OutOfMemoryError メッセージが報告されます
+* [[調査]JVMのスタックサイズについて](http://luozengbin.github.io/blog/2015-04-22-%5B%E8%AA%BF%E6%9F%BB%5Djvm%E3%81%AE%E3%82%B9%E3%82%BF%E3%83%83%E3%82%AF%E3%82%B5%E3%82%A4%E3%82%BA%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6.html)
 
 # その他考慮するべき点
 
@@ -351,7 +357,6 @@ $ sudo -u uic jstat -gccapacity <java pid>
 
 # TODO
 
--Xss スレッドスタックの最大サイズ 1024M デフォルト
 -XX:InitialCodeCacheSize → 24m
 -XX:ReservedCodeCacheSize → 240m
 → 初期値 = 最大値としたほうがいい?。CodeCache が枯渇すると、アプリケーションがスローダウンする恐れがある。 これを避けるため JMX から利用状況をモニタリングするとよい。
