@@ -334,11 +334,9 @@ G1GC を利用するオプション。 java11 のデフォルト GC は G1GC だ
 -  [Javaヒープ領域の使用量と容量をコマンドラインから取得する](https://nori3tsu.hatenablog.com/entry/2014/01/11/144927)
 
 ```
-$ sudo -u uic jstat -gc <java pid>
-$ sudo -u uic jstat -gccapacity <java pid>
+$ jstat -gc <java pid>
+$ jstat -gccapacity <java pid>
 ```
-
-
 
 | 平時 (性能試験実施していない状態)            |
 | :------------------------------------------- |
